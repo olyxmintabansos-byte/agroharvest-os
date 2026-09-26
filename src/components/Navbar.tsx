@@ -4,15 +4,17 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAgro } from "@/context/AgroContext";
-import { Sprout, Sun, Droplets, Calendar, RotateCcw, HeartHandshake } from "lucide-react";
+import { Sprout, Calendar, Beaker, Award, RotateCcw, Droplets } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { kpis, resetAgroData } = useAgro();
 
   const links = [
-    { href: "/", label: "GREENHOUSE & SENSORS", icon: Sprout },
-    { href: "/panen/", label: "KALENDER PANEN & YIELD", icon: Calendar },
+    { href: "/", label: "GREENHOUSE", icon: Sprout },
+    { href: "/panen/", label: "PANEN & YIELD", icon: Calendar },
+    { href: "/nutrisi/", label: "DOSING NPK", icon: Beaker },
+    { href: "/sertifikasi/", label: "SNI ORGANIK A4", icon: Award },
   ];
 
   return (
@@ -34,13 +36,13 @@ export default function Navbar() {
               </span>
             </div>
             <p className="text-[10px] text-[#789376] font-mono tracking-tight uppercase">
-              SMART PRECISION AGRICULTURE // HYDROPONIC DUAL-STAGE FERTIGATION
+              SMART PRECISION AGRICULTURE // FERTIGATION & SNI ORGANIC
             </p>
           </div>
         </div>
 
         {/* Telemetry Ribbons */}
-        <div className="hidden lg:flex items-center gap-6 text-xs font-mono border-l border-[#D5E2D2] pl-6">
+        <div className="hidden xl:flex items-center gap-6 text-xs font-mono border-l border-[#D5E2D2] pl-6">
           <div>
             <span className="text-[9px] text-[#789376] uppercase font-bold block">PROYEKSI BULANAN:</span>
             <span className="font-bold text-[#2D4B32]">{kpis.monthlyYieldProjectionTons} Ton Panen</span>
@@ -55,8 +57,8 @@ export default function Navbar() {
           </div>
 
           <div>
-            <span className="text-[9px] text-[#789376] uppercase font-bold block">KESEHATAN TANAMAN:</span>
-            <span className="font-bold text-[#4A6E46]">{kpis.meanCropHealthPct}% VIGOR</span>
+            <span className="text-[9px] text-[#789376] uppercase font-bold block">KESEHATAN VIGOR:</span>
+            <span className="font-bold text-[#4A6E46]">{kpis.meanCropHealthPct}% SEHAT</span>
           </div>
         </div>
 
@@ -64,14 +66,17 @@ export default function Navbar() {
         <div className="flex items-center gap-2 flex-wrap">
           {links.map((link) => {
             const Icon = link.icon;
-            const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href.replace(/\/$/, "")));
+            const isActive =
+              link.href === "/"
+                ? pathname === "/" || pathname === ""
+                : pathname?.startsWith(link.href.replace(/\/$/, ""));
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-full transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-full transition-all ${
                   isActive
-                    ? "bg-[#8BA888] text-white shadow-sm font-bold"
+                    ? "bg-[#8BA888] text-white shadow-sm"
                     : "bg-[#F0F5EF] text-[#4A6E46] hover:bg-[#E2EBE0]"
                 }`}
               >

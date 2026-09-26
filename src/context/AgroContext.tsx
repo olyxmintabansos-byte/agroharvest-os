@@ -1,16 +1,20 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { GreenhouseZone, HarvestPlot, AgroKpi } from "@/types/agro";
+import { GreenhouseZone, HarvestPlot, NutrisiTank, OrganicAuditLog, AgroKpi } from "@/types/agro";
 
 interface AgroContextType {
   zones: GreenhouseZone[];
   plots: HarvestPlot[];
+  tanks: NutrisiTank[];
+  auditLogs: OrganicAuditLog[];
   selectedZoneId: string;
   setSelectedZoneId: (id: string) => void;
   kpis: AgroKpi;
   toggleIrrigation: (zoneId: string) => void;
   adjustDripFlow: (zoneId: string, delta: number) => void;
+  adjustDosingRate: (tankId: string, delta: number) => void;
+  toggleTankStatus: (tankId: string) => void;
   addHarvestPlot: (p: Omit<HarvestPlot, "id">) => void;
   updateHarvestStatus: (plotId: string, status: HarvestPlot["status"]) => void;
   harvestAndDispatch: (plotId: string) => void;
@@ -131,19 +135,101 @@ const INITIAL_PLOTS: HarvestPlot[] = [
   },
 ];
 
+const INITIAL_TANKS: NutrisiTank[] = [
+  {
+    id: "TNK-01",
+    name: "TANGKI INDUK A // KALSIUM & NITROGEN",
+    stockType: "STOCK_A_CALCIUM",
+    currentVolumeLiters: 1850,
+    maxCapacityLiters: 2500,
+    dosingRateMlPerM3: 450,
+    targetPpm: 220,
+    status: "DOSING_ACTIVE",
+    keyNutrients: "Kalsium Nitrat Ca(NO3)2, Kalium Nitrat KNO3, Fe-EDDHA 6%",
+  },
+  {
+    id: "TNK-02",
+    name: "TANGKI INDUK B // FOSFAT & SULFUR",
+    stockType: "STOCK_B_PHOSPHATE",
+    currentVolumeLiters: 1920,
+    maxCapacityLiters: 2500,
+    dosingRateMlPerM3: 450,
+    targetPpm: 180,
+    status: "DOSING_ACTIVE",
+    keyNutrients: "Monokalium Fosfat KH2PO4, Magnesium Sulfat MgSO4, Mikro EDTA",
+  },
+  {
+    id: "TNK-03",
+    name: "TANGKI KOREKSI pH // ASAM ORGANIK SITRAT",
+    stockType: "PH_CORRECTOR",
+    currentVolumeLiters: 640,
+    maxCapacityLiters: 1000,
+    dosingRateMlPerM3: 85,
+    targetPpm: 60,
+    status: "RECIRCULATING",
+    keyNutrients: "Bio-Citric Acid Food Grade Organik (Stabilisator pH 6.0)",
+  },
+  {
+    id: "TNK-04",
+    name: "TANGKI BIO-STIMULAN // ASAM HUMAT & RUMPUT LAUT",
+    stockType: "BIO_STIMULANT",
+    currentVolumeLiters: 780,
+    maxCapacityLiters: 1000,
+    dosingRateMlPerM3: 120,
+    targetPpm: 95,
+    status: "DOSING_ACTIVE",
+    keyNutrients: "Ekstrak Ascophyllum nodosum, Asam Fulvat, Mikroba Endofit",
+  },
+];
+
+const INITIAL_AUDIT_LOGS: OrganicAuditLog[] = [
+  {
+    id: "AUD-01",
+    auditDate: "24 September 2026",
+    inspectorName: "Ir. Dian Kusuma Wardani, M.Sc",
+    batchCode: "BATCH-AGRO-2026-09A",
+    commodity: "Baby Romaine & Lollo Bionda (Blok A-1)",
+    soilOrganicMatterPct: 6.4,
+    pesticideResiduePpm: 0.0,
+    heavyMetalLeadPpm: 0.002,
+    certificationStatus: "TERSERTIFIKASI_PENUH",
+    accreditedBody: "Lembaga Sertifikasi Organik (LSO) Seloliman No. 042-LSO-IDN",
+    inspectionNotes: "Bebas bahan kimia sintetis 100%. Air irigasi memenuhi baku mutu air minum kelas 1.",
+  },
+  {
+    id: "AUD-02",
+    auditDate: "18 September 2026",
+    inspectorName: "Rahmat Hidayat, S.P., M.Env",
+    batchCode: "BATCH-AGRO-2026-09B",
+    commodity: "Japanese Honeydew Melon Arus (Blok B-4)",
+    soilOrganicMatterPct: 5.8,
+    pesticideResiduePpm: 0.0,
+    heavyMetalLeadPpm: 0.001,
+    certificationStatus: "TERSERTIFIKASI_PENUH",
+    accreditedBody: "Lembaga Sertifikasi Organik (LSO) Seloliman No. 042-LSO-IDN",
+    inspectionNotes: "Pengendalian hama memakai Trichoderma & Bacillus thuringiensis. Kualitas premium.",
+  },
+];
+
 const AgroContext = createContext<AgroContextType | undefined>(undefined);
 
 export function AgroProvider({ children }: { children: React.ReactNode }) {
   const [zones, setZones] = useState<GreenhouseZone[]>(INITIAL_ZONES);
   const [plots, setPlots] = useState<HarvestPlot[]>(INITIAL_PLOTS);
+  const [tanks, setTanks] = useState<NutrisiTank[]>(INITIAL_TANKS);
+  const [auditLogs, setAuditLogs] = useState<OrganicAuditLog[]>(INITIAL_AUDIT_LOGS);
   const [selectedZoneId, setSelectedZoneId] = useState<string>("GH-01");
 
   useEffect(() => {
     try {
       const savedZones = localStorage.getItem("agroharvest_zones");
       const savedPlots = localStorage.getItem("agroharvest_plots");
+      const savedTanks = localStorage.getItem("agroharvest_tanks");
+      const savedAudit = localStorage.getItem("agroharvest_audit");
       if (savedZones) setZones(JSON.parse(savedZones));
       if (savedPlots) setPlots(JSON.parse(savedPlots));
+      if (savedTanks) setTanks(JSON.parse(savedTanks));
+      if (savedAudit) setAuditLogs(JSON.parse(savedAudit));
     } catch {}
   }, []);
 
@@ -151,8 +237,10 @@ export function AgroProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem("agroharvest_zones", JSON.stringify(zones));
       localStorage.setItem("agroharvest_plots", JSON.stringify(plots));
+      localStorage.setItem("agroharvest_tanks", JSON.stringify(tanks));
+      localStorage.setItem("agroharvest_audit", JSON.stringify(auditLogs));
     } catch {}
-  }, [zones, plots]);
+  }, [zones, plots, tanks, auditLogs]);
 
   const toggleIrrigation = (zoneId: string) => {
     setZones((prev) =>
@@ -180,6 +268,31 @@ export function AgroProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const adjustDosingRate = (tankId: string, delta: number) => {
+    setTanks((prev) =>
+      prev.map((t) =>
+        t.id === tankId
+          ? { ...t, dosingRateMlPerM3: Math.max(10, Math.round(t.dosingRateMlPerM3 + delta)) }
+          : t
+      )
+    );
+  };
+
+  const toggleTankStatus = (tankId: string) => {
+    setTanks((prev) =>
+      prev.map((t) => {
+        if (t.id !== tankId) return t;
+        const next =
+          t.status === "DOSING_ACTIVE"
+            ? "RECIRCULATING"
+            : t.status === "RECIRCULATING"
+            ? "REFILL_WARNING"
+            : "DOSING_ACTIVE";
+        return { ...t, status: next };
+      })
+    );
+  };
+
   const addHarvestPlot = (p: Omit<HarvestPlot, "id">) => {
     const newId = `PLT-${String(plots.length + 5).padStart(2, "0")}`;
     setPlots((prev) => [{ ...p, id: newId }, ...prev]);
@@ -200,9 +313,13 @@ export function AgroProvider({ children }: { children: React.ReactNode }) {
   const resetAgroData = () => {
     setZones(INITIAL_ZONES);
     setPlots(INITIAL_PLOTS);
+    setTanks(INITIAL_TANKS);
+    setAuditLogs(INITIAL_AUDIT_LOGS);
     setSelectedZoneId("GH-01");
     localStorage.removeItem("agroharvest_zones");
     localStorage.removeItem("agroharvest_plots");
+    localStorage.removeItem("agroharvest_tanks");
+    localStorage.removeItem("agroharvest_audit");
   };
 
   const totalYieldKg = plots.reduce((sum, p) => sum + p.projectedYieldKg, 0);
@@ -223,11 +340,15 @@ export function AgroProvider({ children }: { children: React.ReactNode }) {
       value={{
         zones,
         plots,
+        tanks,
+        auditLogs,
         selectedZoneId,
         setSelectedZoneId,
         kpis,
         toggleIrrigation,
         adjustDripFlow,
+        adjustDosingRate,
+        toggleTankStatus,
         addHarvestPlot,
         updateHarvestStatus,
         harvestAndDispatch,
